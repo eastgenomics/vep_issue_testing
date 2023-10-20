@@ -20,8 +20,8 @@ Key outputs:
 - files/s1_f1_tso_projects: Lists DNAnexus projects for Helios runs which used VEP v107
 - files/s1_f5_dna_case_list: Lists all unique samples from those cases for which DNA analysis was performed
 - files/s1_f6_final_output: Lists the TSV and VCF file names and IDs for each of the DNA analysis samples
-- files/cvo_vs_vep_output_all: Lists all instances of annotation discrepancies between TSV and VCF output for all cases
-- files/unique_mismatch_variants: Lists all unique annotation discrepancies, and the number and identity of the cases they affect
+- files/s4_f1_cvo_vs_vep_output_all: Lists all instances of annotation discrepancies between TSV and VCF output for all cases
+- files/s5_f1_unique_mismatch_variants: Lists all unique annotation discrepancies, and the number and identity of the cases they affect
 
 Summary of results:
 - 59 DNAnexus projects for Helios runs which used VEP v107
