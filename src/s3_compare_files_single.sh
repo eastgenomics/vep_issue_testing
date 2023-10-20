@@ -36,7 +36,7 @@ vcf_path="${vcf_gz_path%.gz}"
 tsv_variants="${case_id}/${case_id}_tsv_variants_v2"
 
 printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\ttsv_vaf\ttsv_cons\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_clnsig\n" \
-> "cvo_vs_vcf_output_${case_id}_v2"
+> "cvo_vs_vcf_output_${case_id}"
 
 # make case dir
 if [[ ! -d "$case_id" ]]; then
@@ -113,7 +113,7 @@ while read -r gene chrom pos ref alt tsv_vaf trscpt_pdot tsv_cons; do
                         "$tsv_trscpt" "$tsv_pdot" "$tsv_vaf" "$tsv_cons" \
                         "$vcf_trscpt_c" "$vcf_trscpt_p" "$vcf_pdot" \
                         "$vcf_gnomad_g" "$vcf_gnomad_e" "$vcf_clnsig" \
-                        >> "cvo_vs_vcf_output_${case_id}_v2"
+                        >> "cvo_vs_vcf_output_${case_id}"
                     fi
                 fi
             fi

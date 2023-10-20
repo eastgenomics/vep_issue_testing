@@ -3,7 +3,7 @@
 # already_done=$(ls)
 
 printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\ttsv_vaf\ttsv_cons\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_clnsig\n" \
-        > cvo_vs_vcf_output_all_v2
+        > files/s4_f1_cvo_vs_vcf_output_all
 
 while read -r case_id vcf_name vcf_id tsv_name tsv_id; do
 
@@ -12,13 +12,13 @@ while read -r case_id vcf_name vcf_id tsv_name tsv_id; do
     echo "${case_id}"
 
     printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\ttsv_vaf\ttsv_cons\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_clnsig\n" \
-    > "cvo_vs_vcf_output_${case_id}_v2"
+    > "cvo_vs_vcf_output_${case_id}"
 
     # file path shortcuts
     tsv_path="${case_id}/${tsv_name}"
     vcf_gz_path="${case_id}/${vcf_name}"
     vcf_path="${vcf_gz_path%.gz}"
-    tsv_variants="${case_id}/${case_id}_tsv_variants_v2"
+    tsv_variants="${case_id}/${case_id}_tsv_variants"
 
     # make case dir
     if [[ ! -d "$case_id" ]]; then
@@ -95,14 +95,14 @@ while read -r case_id vcf_name vcf_id tsv_name tsv_id; do
                             "$tsv_trscpt" "$tsv_pdot" "$tsv_vaf" "$tsv_cons" \
                             "$vcf_trscpt_c" "$vcf_trscpt_p" "$vcf_pdot" \
                             "$vcf_gnomad_g" "$vcf_gnomad_e" "$vcf_clnsig" \
-                            >> "cvo_vs_vcf_output_${case_id}_v2"
+                            >> "s4_f2_cvo_vs_vcf_output_${case_id}"
 
                             printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
                             "$case_id" "$gene" "$chrom" "$pos" "$ref" "$alt" \
                             "$tsv_trscpt" "$tsv_pdot" "$tsv_vaf" "$tsv_cons" \
                             "$vcf_trscpt_c" "$vcf_trscpt_p" "$vcf_pdot" \
                             "$vcf_gnomad_g" "$vcf_gnomad_e" "$vcf_clnsig" \
-                            >> cvo_vs_vcf_output_all_v2
+                            >> files/s4_f1_cvo_vs_vcf_output_all
                         fi
                     fi
                 fi
