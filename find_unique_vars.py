@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-
 variants = {}
+seen_variants=[]
 
-# read in all instances of variant mismatches between tsv and vcf
-with open('files/s4_f1_cvo_vs_vcf_output_all', 'r') as reader:
+# input file has all instances of annotation mismatches
+with open('cvo_vs_vcf_output.tsv', 'r') as reader:
     lines = reader.readlines()
 
 for line in lines[1:]:  # ignore header
@@ -16,7 +16,9 @@ for line in lines[1:]:  # ignore header
     # unique variants include position, change, and transcript
     variant = f"{chrom}:{pos}:{ref}:{alt}:{tsv_trscpt}"
 
-    if variant not in variants.keys():
+    if variant not in seen_variants:
+
+        seen_variants.append(variant)
 
         variants[variant] = {
             'gene': gene.strip(),
@@ -31,7 +33,7 @@ for line in lines[1:]:  # ignore header
             'cases': {case_id.strip(): tsv_vaf.strip()}
         }
 
-    # if variant hasn't been seen, check pdots are the same as already in dict
+    # if variant hasn't been seen, check p. are the same as already in dict
     else:
         tsv_pdot_seen = variants[variant]['tsv_pdot']
         vcf_pdot_seen = variants[variant]['vcf_pdot']
@@ -52,12 +54,11 @@ for line in lines[1:]:  # ignore header
 
         variants[variant]['cases'][case_id] = tsv_vaf
 
-unique_var_count = len(variants.keys())
-print(f"{unique_var_count} unique variants have mismatching annotation")
-
-with open('files/s5_f1_unique_mismatch_variants', 'w') as writer:
+# write the output file header
+with open('unique_mismatch_variants', 'w') as writer:
     writer.write("chrom\tpos\tref\talt\tgene\ttsv_pdot\ttsv_trscpt\ttsv_cons\tvcf_pdot\tvcf_trscpt_p\tvcf_trscpt_c\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_clinvar\tcase_count\tcases\n")
 
+# append the info for each unique variant to the output file
 for var, var_info in variants.items():
 
     chrom, pos, ref, alt, tsv_trscpt = var.split(':')
@@ -75,5 +76,5 @@ for var, var_info in variants.items():
         var_info['vcf_trscpt_c'], var_info['vcf_gnom_g'],
         var_info['vcf_gnom_e'], var_info['vcf_clinvar'], case_count, case_str])
 
-    with open('files/s5_f1_unique_mismatch_variants', 'a') as writer:
+    with open('unique_mismatch_variants', 'a') as writer:
         writer.write(f"{line}\n")
