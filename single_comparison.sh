@@ -21,16 +21,13 @@ if [[ ! -e "$tsv_path" ]]; then
     dx download "$tsv_id" -o "$case_id" -f --no-progress
 fi
 
-# download and unzip vcf
+# download vcf
 if [[ ! -e "$vcf_gz_path" ]] && [[ ! -e "$vcf_path" ]]; then
     dx download "$vcf_id" -o "$case_id" -f --no-progress
-    gunzip "$vcf_gz_path"
-elif [[ -e "$vcf_gz_path" ]]; then
-    gunzip "$vcf_gz_path"
 fi
 
 # keep tsv lines where f2 starts 'chr', f3 is integer, and f8 contains p.
-# but not if VAF < 0.05
+# but not if VAF < 0.05 (one of the workbooks filters)
 # take gene, chrom, pos, ref, alt, vaf, p-dot, type
 
 tsv_variants=$(awk -F"\t" \
@@ -60,72 +57,64 @@ for variant in $tsv_variants; do
     # if tsv p. isn't blank,
     if [[ -n "${tsv_pdot// /}" ]]; then
 
-        # get INFO from vcf lines with same chrom, pos, ref & alt
-        vcf_vars=$(awk -F"\t" \
-        -v chrom="$chrom" -v pos="$pos" -v ref="$ref" -v alt="$alt" \
-        '$1==chrom && $2==pos && $4==ref && $5==alt {print $8}' "$vcf_path")
+        # make sure vcf is bgzipped (not gzipped), then index
+        if [[ -e "${vcf_path}.gz" ]]; then
+            gunzip "$vcf_path"
+        fi
+        if [[ -e "$vcf_path" ]]; then
+            bgzip "$vcf_path" -f
+        fi
+        bcftools index "${vcf_path}.gz" -f
 
-        # check whether vcf p. different to tsv p.
-        for var in $vcf_vars; do
-            if [[ -n "${var// /}" ]]; then
+        # retrieve INFO fields where chrom, pos, ref, alt and transcript match
+        vcf_fields="$(bcftools query \
+        -f '%INFO/DP\t%CSQ_SYMBOL\t%CSQ_HGVSc\t%CSQ_HGVSp\t%CSQ_gnomADg_AF\t%CSQ_gnomADe_AF\t%CSQ_Consequence\n' \
+        -r "${chrom}:${pos}" \
+        -i "REF='${ref}' && ALT='${alt}' && (INFO/CSQ_HGVSc~'${tsv_trs}' || INFO/CSQ_HGVSp~'${tsv_trs}')" \
+        "${vcf_path}.gz")"
 
-                # issue with unicode '%3D' not converting to '='
-                vcf_var="${var//\%3D/=}"
-                vcf_pdot=$(grep -Po '(?<=:)p.(.*?)(?=;)' <<< "$vcf_var")
+        # assign INFO fields to variables
+        IFS=$'\t' read -r vcf_dp vcf_symbol vcf_HGVSc vcf_HGVSp vcf_gnomADg vcf_gnomADe vcf_consq <<< "$vcf_fields"
 
-                # if vcf p. is non-blank and also different to tsv p.,
-                if [[ -n "${vcf_pdot// /}" ]] && \
-                [[ "$tsv_pdot" != "$vcf_pdot" ]]; then
+        # parse out the vcf transcripts and p.
+        vcf_trs_c=$(echo "$vcf_HGVSc" | grep -Po '^(.*?)(?=:c\.)')
+        vcf_trs_p=$(echo "$vcf_HGVSp" | grep -Po '^(.*?)(?=:p\.)')
+        vcf_pdot=$(echo "$vcf_HGVSp" | grep -Po '(?<=:)p\.(.*?)$')
 
-                    # get transcript names from VCF
-                    vcf_trs_p=$(grep -Po '(?<=;CSQ_HGVSp=)(.*?)(?=:p.)' <<< "$vcf_var")
-                    vcf_trs_c=$(grep -Po '(?<=;CSQ_HGVSc=)(.*?)(?=:)' <<< "$vcf_var")
+        # if the vcf pdot doesn't match,
+        if [[ "$tsv_pdot" != "$vcf_pdot" ]]; then
 
-                    # if tsv and vcf variants affect the same transcript,
-                    if [[ "$tsv_trs" == "$vcf_trs_p" ]] \
-                    || [[ "$tsv_trs" == "$vcf_trs_c" ]]; then
+            # list consequences to exclude variants with
+            ignore_cons="intron_variant&non_coding_transcript_variant non_coding_transcript_exon_variant 3_prime_UTR_variant 5_prime_UTR_variant downstream_gene_variant intron_variant splice_region_variant&intron_variant splice_region_variant&synonymous_variant synonymous_variant"
 
-                        # get INFO fields to filter on
-                        vcf_dp=$(grep -Po '(?<=^DP=)(.*?)(?=;)' <<< "$vcf_var")
-                        vcf_gnomADg=$(grep -Po '(?<=;CSQ_gnomADg_AF=)(.*?)(?=;)' <<< "$vcf_var")
-                        vcf_gnomADe=$(grep -Po '(?<=;CSQ_gnomADe_AF=)(.*?)(?=;)' <<< "$vcf_var")
-                        vcf_consq=$(grep -Po '(?<=;CSQ_Consequence=)(.*?)(?=;)' <<< "$vcf_var")
-                        vcf_symbol=$(grep -Po '(?<=;CSQ_SYMBOL=)(.*?)(?=;)' <<< "$vcf_var")
+            # compare variant to filters
+            keep_var=true
 
-                        # list consequences to exclude variants with
-                        ignore_cons="intron_variant&non_coding_transcript_variant non_coding_transcript_exon_variant 3_prime_UTR_variant 5_prime_UTR_variant downstream_gene_variant intron_variant splice_region_variant&intron_variant splice_region_variant&synonymous_variant synonymous_variant"
+            if [[ "$vcf_dp" -eq 0 ]] \
+            || [[ $(bc -l <<< "$vcf_gnomADe > 0.01") -eq 1 ]] \
+            || [[ $(bc -l <<< "$vcf_gnomADg > 0.01") -eq 1 ]] \
+            || [[ "$ignore_cons" == *"$vcf_consq"* ]]; then
 
-                        # compare variant to filters
-                        keep_var=true
-
-                        if [[ "$vcf_dp" == 0 ]] \
-                        || [[ $(bc -l <<< "$vcf_gnomADe > 0.01") -eq 1 ]] \
-                        || [[ $(bc -l <<< "$vcf_gnomADg > 0.01") -eq 1 ]] \
-                        || [[ "$ignore_cons" == *"$vcf_consq"* ]]; then
-
-                            keep_var=false
-
-                        elif [[ "$vcf_consq" == "upstream_gene_variant" ]] \
-                        && [[ "$vcf_symbol" != "TERT" ]]; then
-
-                            keep_var=false
-
-                        fi
-
-                        # if variant passes filters, add to output
-                        if [[ "$keep_var" == true ]]; then
-
-                            printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-                            "$case_id" "$gene" "$chrom" "$pos" "$ref" "$alt" \
-                            "$tsv_trs" "$tsv_pdot" "$tsv_vaf" "$tsv_type" \
-                            "$vcf_trs_c" "$vcf_trs_p" "$vcf_pdot" "$vcf_dp" \
-                            "$vcf_gnomADg" "$vcf_gnomADe" "$vcf_consq" \
-                            >> cvo_vs_vcf_output.tsv
-                        fi
-                    fi
-                fi
+                keep_var=false
             fi
-        done
+
+            if [[ "$vcf_consq" == "upstream_gene_variant" ]] \
+            && [[ "$vcf_symbol" != "TERT" ]]; then
+
+                keep_var=false
+            fi
+
+            # if variant passes filters, add to output
+            if [[ "$keep_var" == true ]]; then
+
+                printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+                "$case_id" "$gene" "$chrom" "$pos" "$ref" "$alt" \
+                "$tsv_trs" "$tsv_pdot" "$tsv_vaf" "$tsv_type" \
+                "$vcf_trs_c" "$vcf_trs_p" "$vcf_pdot" "$vcf_dp" \
+                "$vcf_gnomADg" "$vcf_gnomADe" "$vcf_consq" \
+                >> cvo_vs_vcf_output.tsv
+            fi
+        fi
     fi
 done
 
