@@ -9,12 +9,12 @@ with open('cvo_vs_vcf_output.tsv', 'r') as reader:
 
 for line in lines[1:]:  # ignore header
 
-    case_id, gene, chrom, pos, ref, alt, tsv_trscpt, tsv_pdot, tsv_vaf, \
-        tsv_cons, vcf_trscpt_c, vcf_trscpt_p, vcf_pdot, vcf_gnom_g, \
-        vcf_gnom_e, vcf_clinvar = line.split('\t')
+    case_id, gene, chrom, pos, ref, alt, tsv_trs, tsv_pdot, tsv_vaf, \
+        tsv_type, vcf_trs_c, vcf_trs_p, vcf_pdot, vcf_dp, vcf_gnomADg, \
+        vcf_gnomADe, vcf_consq = line.split('\t')
 
     # unique variants include position, change, and transcript
-    variant = f"{chrom}:{pos}:{ref}:{alt}:{tsv_trscpt}"
+    variant = f"{chrom}:{pos}:{ref}:{alt}:{tsv_trs}"
 
     if variant not in seen_variants:
 
@@ -23,22 +23,23 @@ for line in lines[1:]:  # ignore header
         variants[variant] = {
             'gene': gene.strip(),
             'tsv_pdot': tsv_pdot.strip(),
-            'tsv_cons': tsv_cons.strip(),
-            'vcf_trscpt_c': vcf_trscpt_c.strip(),
-            'vcf_trscpt_p': vcf_trscpt_p.strip(),
+            'tsv_type': tsv_type.strip(),
+            'vcf_trs_c': vcf_trs_c.strip(),
+            'vcf_trs_p': vcf_trs_p.strip(),
             'vcf_pdot': vcf_pdot.strip(),
-            'vcf_gnom_g': vcf_gnom_g.strip(),
-            'vcf_gnom_e':vcf_gnom_e.strip(),
-            'vcf_clinvar': vcf_clinvar.strip(),
-            'cases': {case_id.strip(): tsv_vaf.strip()}
+            'vcf_gnomADg': vcf_gnomADg.strip(),
+            'vcf_gnomADe':vcf_gnomADe.strip(),
+            'vcf_consq': vcf_consq.strip(),
+            'cases': [case_id.strip()]
         }
 
-    # if variant hasn't been seen, check p. are the same as already in dict
+    # if variant hasn't been seen,
     else:
+        # check tsv/vsf p.s are the same as already in dict
         tsv_pdot_seen = variants[variant]['tsv_pdot']
         vcf_pdot_seen = variants[variant]['vcf_pdot']
-        vcf_tr_p_seen = variants[variant]['vcf_trscpt_p']
-        vcf_tr_c_seen = variants[variant]['vcf_trscpt_c']
+        vcf_trs_p_seen = variants[variant]['vcf_trs_p']
+        vcf_trs_c_seen = variants[variant]['vcf_trs_c']
 
         assert tsv_pdot == tsv_pdot_seen; \
             f"multiple different tsv_pdot for {variant}"
@@ -46,35 +47,37 @@ for line in lines[1:]:  # ignore header
         assert vcf_pdot == vcf_pdot_seen; \
             f"multiple different vcf_pdot for {variant}"
 
-        assert vcf_trscpt_p == vcf_tr_p_seen; \
-            f"multiple different vcf_trscpt_p for {variant}"
+        assert vcf_trs_p == vcf_trs_p_seen; \
+            f"multiple different vcf_trs_p for {variant}"
 
-        assert vcf_trscpt_c == vcf_tr_c_seen; \
-            f"multiple different vcf_trscpt_c for {variant}"
+        assert vcf_trs_c == vcf_trs_c_seen; \
+            f"multiple different vcf_trs_c for {variant}"
 
-        variants[variant]['cases'][case_id] = tsv_vaf
+        # add case id to list
+        variants[variant]['cases'].append(case_id.strip())
 
 # write the output file header
 with open('unique_mismatch_variants', 'w') as writer:
-    writer.write("chrom\tpos\tref\talt\tgene\ttsv_pdot\ttsv_trscpt\ttsv_cons\tvcf_pdot\tvcf_trscpt_p\tvcf_trscpt_c\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_clinvar\tcase_count\tcases\n")
+    writer.write("chrom\tpos\tref\talt\tgene\ttsv_pdot\ttsv_trs\ttsv_type\tvcf_pdot\tvcf_trs_p\tvcf_trs_c\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_consq\tcase_count\tcases\n")
 
 # append the info for each unique variant to the output file
 for var, var_info in variants.items():
 
-    chrom, pos, ref, alt, tsv_trscpt = var.split(':')
+    chrom, pos, ref, alt, tsv_trs = var.split(':')
 
-    case_list = [f"{case_id} ({vaf})" \
-        for case_id, vaf in variants[var]['cases'].items()]
-
+    # get list of cases affected by that variant
+    case_list = variants[var]['cases']
     case_count = str(len(case_list))
     case_str = ', '.join(case_list).strip()
 
+    # create the line to output
     line = '\t'.join(
         [chrom, pos, ref, alt, var_info['gene'],
-        var_info['tsv_pdot'], tsv_trscpt, var_info['tsv_cons'],
-        var_info['vcf_pdot'], var_info['vcf_trscpt_p'],
-        var_info['vcf_trscpt_c'], var_info['vcf_gnom_g'],
-        var_info['vcf_gnom_e'], var_info['vcf_clinvar'], case_count, case_str])
+        var_info['tsv_pdot'], tsv_trs, var_info['tsv_type'],
+        var_info['vcf_pdot'], var_info['vcf_trs_p'],
+        var_info['vcf_trs_c'], var_info['vcf_gnomADg'],
+        var_info['vcf_gnomADe'], var_info['vcf_consq'], case_count, case_str])
 
+    # append it to the file
     with open('unique_mismatch_variants', 'a') as writer:
         writer.write(f"{line}\n")

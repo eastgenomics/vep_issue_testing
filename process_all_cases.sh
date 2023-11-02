@@ -2,8 +2,8 @@
 
 # initialise output file
 printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\t \
-tsv_vaf\ttsv_cons\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_gnomad_g\t \
-vcf_gnomad_e\tvcf_clnsig\n" > cvo_vs_vcf_output.tsv
+tsv_vaf\ttsv_type\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_dp\tvcf_gnomad_g \
+\tvcf_gnomad_e\tvcf_consq\n" > cvo_vs_vcf_output.tsv
 
 # identify all 002_*_TSO500 projects between 22 May and 20 Oct 2023
 projects=$(dx find projects \
@@ -56,9 +56,10 @@ for project in $projects; do
             if [[ "$vcf_state" == 'live' ]] \
             && [[ "$tsv_state" == 'live' ]]; then
 
+                echo "Comparing ${case_id}"
                 tsv_name=$(dx describe "$tsv_id" --json | jq -r '.name')
 
-                bash src/compare_vcf_and_tsv.sh \
+                bash single_comparison.sh \
                     "$case_id" "$vcf_id" "$vcf_name" "$tsv_id" "$tsv_name"
             else
                 echo "${case_id} not processed due to archived files"
