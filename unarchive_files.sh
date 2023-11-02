@@ -9,6 +9,8 @@ projects=$(dx find projects \
 
 for project in $projects; do
 
+    echo "$project"
+
     # find IDs of VEP-annotated VCF files
     vcf_ids=$(dx find data \
     --name "*withLowSupportHotspots_annotated.vcf.split.vcf.gz" \
@@ -38,23 +40,31 @@ for project in $projects; do
         # if there is a matching tsv file,
         if [[ "${tsv_id// /}" != "" ]]; then
 
-            tsv_name=$(dx describe "$vcf_id" --json | jq -r '.name')
+            tsv_name=$(dx describe "$tsv_id" --json | jq -r '.name')
 
             # check whether the vcf or tsv are archived
             vcf_state=$(dx describe "$vcf_id" --json | jq -r '.archivalState')
             tsv_state=$(dx describe "$tsv_id" --json | jq -r '.archivalState')
 
-            # unarchive files if needed
+            # unarchive files if needed. will error if same project already
+            # has a file with unarchiving tag, so include sleep command
             if [[ "$tsv_state" == 'archived' ]]; then
-                echo "${tsv_name} is archived, unarchiving"
-                dx unarchive "$tsv_id"
+                dx unarchive "$tsv_id" -y
                 sleep 2
             fi
             if [[ "$vcf_state" == 'archived' ]]; then
-                echo "${vcf_name} is archived, unarchiving"
-                dx unarchive "$vcf_id"
+                dx unarchive "$vcf_id" -y
                 sleep 2
             fi
+
+            # check if any files are still in unarchiving process
+            if [[ "$tsv_state" == 'unarchiving' ]]; then
+                echo "${tsv_name} currently unarchiving"
+            fi
+            if [[ "$vcf_state" == 'unarchiving' ]]; then
+                echo "${vcf_name} currently unarchiving"
+            fi
+
         fi
     done
 done

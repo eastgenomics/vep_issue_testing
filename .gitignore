@@ -1,0 +1,14 @@
+*-847*
+HD*
+MB*
+
+*.ods
+*.tsv
+*.xlsx
+
+list_of_instances
+unique_mismatch_variants
+
+unarchive_files.sh
+vars_per_case.py
+filter_by_genes.py
