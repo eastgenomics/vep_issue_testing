@@ -2,9 +2,9 @@
 
 # define output files
 date=$(date '+%Y%m%d')
-output_all_vars="output_all_mismatches_${date}_no_filtering.tsv"
-output_unique_vars="output_unique_mismatches_${date}_no_filtering.tsv"
-output_panel_filtering="output_panel_filtering_${date}_no_filtering.tsv"
+output_all_vars="output_all_mismatches_${date}.tsv"
+output_unique_vars="output_unique_mismatches_${date}.tsv"
+output_panel_filtering="output_panel_filtering_${date}.tsv"
 
 # initialise main output file
 printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\t \

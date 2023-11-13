@@ -55,7 +55,6 @@ for line in mismatch_lines[1:]:
     tsv_pdot, tsv_vaf = split[7:9]
     vcf_pdot = split[12]
     vcf_gnomADg, vcf_gnomADe = split[14:16]
-    variant = f"{chrom}:{pos}:{ref}:{alt}"
 
     has_no_phenotype = False
     panels_not_listed = False
@@ -63,7 +62,9 @@ for line in mismatch_lines[1:]:
     mismatch_problem = False
 
     # check case has panel(s) listed
-    if case not in case_panel_map.keys():
+    if (case not in case_panel_map.keys()) \
+    or (case_panel_map[case] == []):
+
         has_no_phenotype = True
         case_panel_map[case] = []
 
@@ -87,14 +88,17 @@ for line in mismatch_lines[1:]:
 
     # check whether the variant affects a gene in the case's panels
     if affected_gene in case_genes:
-        output_dict['mismatch_problem'] = True
+        mismatch_problem = True
 
     # create output dict
     output_dict = {
         'case': case,
         'panels': case_panels,
         'genes': sorted_genes,
-        'variant': variant,
+        'chrom': chrom,
+        'pos': pos,
+        'ref': ref,
+        'alt': alt,
         'affected_gene': affected_gene,
         'tsv_pdot': tsv_pdot,
         'vcf_pdot': vcf_pdot,
@@ -111,7 +115,7 @@ for line in mismatch_lines[1:]:
 # initialise output file with header line
 with open(output_file, 'w') as writer:
     writer.write(
-        "case\tpanels\tgenes\tvariant\taffected_gene\t"
+        "case\tpanels\tgenes\tchrom\tpos\tref\talt\taffected_gene\t"
         "tsv_pdot\tvcf_pdot\ttsv_vaf\tvcf_gnomADg\tvcf_gnomADe\t"
         "has_no_phenotype\tpanels_not_listed\tno_genes_identified\t"
         "mismatch_problem\n")
@@ -121,8 +125,8 @@ with open(output_file, 'a') as writer:
     for var in output:
         writer.write(
             f"{var['case']}\t{var['panels']}\t{var['genes']}\t"
-            f"{var['variant']}\t{var['affected_gene']}\t"
-            f"{var['tsv_pdot']}\t{var['vcf_pdot']}\t{var['tsv_vaf']}\t"
-            f"{var['vcf_gnomADg']}\t{var['vcf_gnomADe']}\t"
+            f"{var['chrom']}\t{var['pos']}\t{var['ref']}\t{var['alt']}\t"
+            f"{var['affected_gene']}\t{var['tsv_pdot']}\t{var['vcf_pdot']}\t"
+            f"{var['tsv_vaf']}\t{var['vcf_gnomADg']}\t{var['vcf_gnomADe']}\t"
             f"{var['has_no_phenotype']}\t{var['panels_not_listed']}\t"
             f"{var['no_genes_identified']}\t{var['mismatch_problem']}\n")
