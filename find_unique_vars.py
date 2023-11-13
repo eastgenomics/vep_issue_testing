@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 
-## once a list of all mismatch instances has been generated, processes this to
-## list unique mismatches and the specific cases each affects
+"""
+once a list of all mismatch instances has been generated, processes this to
+list unique mismatches and the specific cases each affects
+"""
+
+import sys
 
 
 variants = {}
-seen_variants=[]
+seen_variants = []
 
 # read in args (name of input and output files)
-import sys
-
 input_file = sys.argv[1]
 output_file = sys.argv[2]
 
@@ -69,7 +71,10 @@ for line in lines[1:]:  # ignore header line
 
 # write the output file header
 with open(output_file, 'w') as writer:
-    writer.write("chrom\tpos\tref\talt\tgene\ttsv_pdot\ttsv_trs\ttsv_type\tvcf_pdot\tvcf_trs_p\tvcf_trs_c\tvcf_gnomad_g\tvcf_gnomad_e\tvcf_consq\tcase_count\tcases\n")
+    writer.write(
+        "chrom\tpos\tref\talt\tgene\ttsv_pdot\ttsv_trs\ttsv_type\t"
+        "vcf_pdot\tvcf_trs_p\tvcf_trs_c\tvcf_gnomad_g\tvcf_gnomad_e\t"
+        "vcf_consq\tcase_count\tcases\n")
 
 # append the info for each unique variant to the output file
 for var, var_info in variants.items():

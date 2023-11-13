@@ -1,18 +1,21 @@
 #!/usr.bin/env python
 
-## for each mismatch instance, identifies whether it affects a gene
-## which is actually in the panel applied to that case.
-## requires two other files - a list of the genes in each panel, and
-## a list of the panels used for each case (from Epic)
+"""
+For each mismatch instance, identifies whether it affects a gene
+which is actually in the panel applied to that case.
 
+Requires two other files - a list of the genes in each panel, and
+a list of the panels used for each case (from Epic)
+"""
+
+
+import sys
 
 output = []
 panel_gene_map = {}
 case_panel_map = {}
 
 # read in args (names of input and output files)
-import sys
-
 input_file = sys.argv[1]
 output_file = sys.argv[2]
 
