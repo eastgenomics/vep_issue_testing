@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# initialise output file
+# define output files
+date=$(date '+%Y%m%d')
+output_all_vars="output_all_mismatches_${date}_no_filtering.tsv"
+output_unique_vars="output_unique_mismatches_${date}_no_filtering.tsv"
+output_panel_filtering="output_panel_filtering_${date}_no_filtering.tsv"
+
+# initialise main output file
 printf "case_id\tgene\tchrom\tpos\tref\talt\ttsv_trscpt\ttsv_pdot\t \
 tsv_vaf\ttsv_type\tvcf_trscpt_c\tvcf_trscpt_p\tvcf_pdot\tvcf_dp\tvcf_gnomad_g \
-\tvcf_gnomad_e\tvcf_consq\n" > cvo_vs_vcf_output.tsv
+\tvcf_gnomad_e\tvcf_consq\n" > "$output_all_vars"
 
 # identify all 002_*_TSO500 projects between 22 May and 20 Oct 2023
 projects=$(dx find projects \
@@ -13,12 +19,12 @@ projects=$(dx find projects \
 --brief)
 
 # find all the relevant files from each project
+i=1
 for project in $projects; do
 
-    echo "$project"
+    echo "Processing project ${i}: ${project}"
 
-    # find IDs of VEP-annotated VCF files
-
+    # get IDs of all VEP-annotated VCF files in that project
     vcf_ids=$(dx find data \
     --name "*withLowSupportHotspots_annotated.vcf.split.vcf.gz" \
     --project "$project" \
@@ -37,33 +43,51 @@ for project in $projects; do
             case_id="$vcf_prefix"
         fi
 
-        # identify the TSO500 output file
-        # same tsv file is in project twice in different folders, only keep one
+        # ignore QC samples
+        if [[ "$case_id" != *"HD753"* ]] \
+        && [[ "$case_id" != *"Q"* ]]; then
 
-        tsv_id=$(dx find data \
-            --name "${case_id}_CombinedVariantOutput.tsv" \
-            --project "$project" \
-            --brief | cut -d $'\n' -f 1)
+            # identify the TSO500 output file - same tsv file appears
+            # twice in a project, so only keep one
 
-        # if there is a matching tsv file,
-        if [[ "${tsv_id// /}" != "" ]]; then
+            tsv_id=$(dx find data \
+                --name "${case_id}_CombinedVariantOutput.tsv" \
+                --project "$project" \
+                --brief | cut -d $'\n' -f 1)
 
-            # check whether the vcf or tsv are archived
-            vcf_state=$(dx describe "$vcf_id" --json | jq -r '.archivalState')
-            tsv_state=$(dx describe "$tsv_id" --json | jq -r '.archivalState')
+            # if there is such a matching tsv file (tsv_id isn't blank),
+            if [[ "${tsv_id// /}" != "" ]]; then
 
-            # if both files are live, compare them
-            if [[ "$vcf_state" == 'live' ]] \
-            && [[ "$tsv_state" == 'live' ]]; then
+                # check whether the vcf or tsv are archived
+                vcf_state=$(dx describe "$vcf_id" --json | jq -r '.archivalState')
+                tsv_state=$(dx describe "$tsv_id" --json | jq -r '.archivalState')
 
-                echo "Comparing ${case_id}"
-                tsv_name=$(dx describe "$tsv_id" --json | jq -r '.name')
+                # if both files are live,
+                if [[ "$vcf_state" == 'live' ]] \
+                && [[ "$tsv_state" == 'live' ]]; then
 
-                bash single_comparison.sh \
-                    "$case_id" "$vcf_id" "$vcf_name" "$tsv_id" "$tsv_name"
-            else
-                echo "${case_id} not processed due to archived files"
+                    # get the name of the tsv file
+                    tsv_name=$(dx describe "$tsv_id" --json | jq -r '.name')
+
+                    # compare the two files
+                    echo "Comparing ${case_id}"
+
+                    bash single_comparison.sh \
+                        "$case_id" "$vcf_id" "$vcf_name" "$tsv_id" "$tsv_name" "$output_all_vars"
+                else
+                    echo "${case_id} not processed due to archived files"
+                fi
             fi
         fi
     done
+
+    i=$((i+1))
 done
+
+# run script to identify the cases each unique mismatch affects
+echo "Identifying unique mismatch information"
+python find_unique_vars.py "$output_all_vars" "$output_unique_vars"
+
+# run script to apply panel filtering to all mismatches
+echo "Identifying unique case information"
+python apply_panel_filtering.py "$output_all_vars" "$output_panel_filtering"

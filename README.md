@@ -3,18 +3,20 @@
 Confluence documentation: https://cuhbioinformatics.atlassian.net/wiki/spaces/RD/pages/3009019922/231009+Comparing+TSO500+CombinedVariantOutput.tsv+to+VEP-annotated+VCF
 
 Objective:
-For all Helios (TSO500) cases which annotated VCFs using VEP v107, compare the TSO500 output and the annotated VCF to identify any discrepancies in p. annotations; list all such discrepancies; and identify the number of cases which each unique discrepancy affects.
+For all Helios (TSO500) cases which annotated VCFs using VEP v107:
+- Compare the TSO500 output and the annotated VCF to identify any discrepancies in p. annotations
+- List all instances of such discrepancies
+- Identify the number of cases that each unique discrepancy affects
+- By comparing affected genes to case panels, identify whether any mismatches could have affected diagnosis
 
 Usage:
-- Executing unarchive_files.sh will identify all matched TSV and VCF files from relevant projects, and unarchive them if necessary.
-- Executing process_all_cases.sh will identify all relevant projects in DNAnexus, then identify matched TSV and VCF files from that project.
-- For each case, process_all_cases.sh will execute single_comparison.sh, which compares the relevant TSV and VCF files to identify variants with p. annotation discrepancies.
-- This will generate a single output TSV file listing all instances of p. annotation discrepancies from every case.
-- Executing find_unique_vars.py will condense this list, generating a list of unique annotation discrepancies along with the number and identity of the cases each affects.
 
-Summary of results:
-- 59 DNAnexus projects for Helios runs used VEP v107
-- 779 unique cases for DNA analysis in these projects
-- 694 cases had at least one variant where p. annotation differed between the TSO500 output and the annotated VCF
-- 1843 individual instances of an annotation discrepancy across all cases
-- 204 unique annotation discrepancies, affecting between 1 and 645 cases each
+Executing process_all_cases.sh will:
+
+1. Identify all relevant projects in DNAnexus, then identify matched TSV and VCF files from that project
+2. Execute single_comparison.sh once per case, to compare TSV and VCF files and identify variants with p. annotation discrepancies
+3. Generate an output file (output_all_mismatches) listing all instances of p. annotation discrepancies from every case
+4. Execute find_unique_vars.py to create a list of unique mismatches along with the cases they each affect (output_unique_mismatches)
+5. Execute apply_panel_filtering.py to identify whether each mismatch instance affects a gene which is actually in the panel used for that case (output_panel_filtering)
+
+There are 70 DNAnexus projects of the form 002_*_TSO500, each with up to 16 DNA samples, so there are a large number of potentially affected cases to process. This means that this code has a long run time (4-5 hours).
