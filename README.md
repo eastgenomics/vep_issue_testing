@@ -2,14 +2,15 @@
 
 Confluence documentation: https://cuhbioinformatics.atlassian.net/wiki/spaces/RD/pages/3009019922/231009+Comparing+TSO500+CombinedVariantOutput.tsv+to+VEP-annotated+VCF
 
-Objective:
+## Objective
+
 For all Helios (TSO500) cases which annotated VCFs using VEP v107:
 - Compare the TSO500 output and the annotated VCF to identify any discrepancies in p. annotations
 - List all instances of such discrepancies
 - Identify the number of cases that each unique discrepancy affects
 - By comparing affected genes to case panels, identify whether any mismatches could have affected diagnosis
 
-Usage:
+## Usage
 
 Executing process_all_cases.sh will:
 
