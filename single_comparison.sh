@@ -94,6 +94,9 @@ for variant in $tsv_variants; do
             vcf_transcript_p=$(echo "$vcf_HGVSp" | grep -Po '^(.*?)(?=:p\.)')
             vcf_pdot=$(echo "$vcf_HGVSp" | grep -Po '(?<=:)p\.(.*?)$')
 
+            # issue with unicode '%3D' not getting converted to '='
+            vcf_pdot=${vcf_pdot//\%3D/=}
+
             # if the vcf pdot doesn't match the tsv pdot,
             if [[ "$tsv_pdot" != "$vcf_pdot" ]]; then
 
